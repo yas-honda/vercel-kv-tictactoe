@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vercel KV 三目並べ</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>#</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .cell {
@@ -118,6 +119,10 @@
             } else {
                 boardElement.classList.add('pointer-events-none', 'opacity-50');
             }
+            
+            if (isGameOver) {
+                stopPolling();
+            }
         };
 
         const pollGameState = async () => {
@@ -182,17 +187,26 @@
             newGameButton.textContent = '作成中...';
             try {
                 const response = await fetch('/api/game/create', { method: 'POST' });
+                if (!response.ok) throw new Error('API request failed');
                 const data = await response.json();
                 
-                // 新しいゲームIDでURLを更新
                 const newUrl = `${window.location.origin}${window.location.pathname}?gameId=${data.gameId}`;
                 window.history.pushState({ path: newUrl }, '', newUrl);
 
-                // ゲーム状態を初期化
-                initGame();
+                // Manually set state for Player X (the creator)
+                gameState.gameId = data.gameId;
+                gameState.player = 'X';
+                
+                newGameButton.style.display = 'none';
+                gameIdContainer.classList.remove('hidden');
+                shareUrlInput.value = window.location.href;
+                
+                startPolling();
+
             } catch (error) {
                 console.error('Failed to create new game:', error);
                 alert('新しいゲームの作成に失敗しました。');
+                statusElement.textContent = '「新しいゲームを開始する」を押してください';
             } finally {
                 newGameButton.disabled = false;
                 newGameButton.textContent = '新しいゲームを開始する';
@@ -205,15 +219,17 @@
             const gameIdFromUrl = urlParams.get('gameId');
 
             if (gameIdFromUrl) {
+                // This is Player O (the joiner)
                 gameState.gameId = gameIdFromUrl;
                 gameState.player = 'O';
-                newGameButton.style.display = 'none'; // Hide new game button when joining
+                newGameButton.style.display = 'none';
                 gameIdContainer.classList.remove('hidden');
                 shareUrlInput.value = window.location.href;
                 startPolling();
             } else {
+                // This is Player X (the creator), before they've clicked the button.
                 gameState.player = 'X';
-                // No game ID yet, wait for user to click "New Game"
+                statusElement.textContent = '「新しいゲームを開始する」を押してください';
                 stopPolling();
             }
         };
