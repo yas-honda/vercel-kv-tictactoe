@@ -1,0 +1,5 @@
+{
+  "name": "Vercel KV Tic-Tac-Toe",
+  "description": "Vercel Functions and Vercel KVを搭載した、フレームワークなしのリアルタイム三目並べゲームです。",
+  "requestFramePermissions": []
+}
